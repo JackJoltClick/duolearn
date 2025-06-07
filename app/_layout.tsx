@@ -3,9 +3,15 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Linking from 'expo-linking';
 import { useEffect } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { queryClient } from '@/lib/hooks/useQuery';
+import { useAuthStore } from '@/lib/stores/auth';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -25,6 +31,8 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  
+  const initialize = useAuthStore((state) => state.initialize);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -33,15 +41,62 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
+      initialize();
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, initialize]);
+
+  // Handle deep linking for email verification
+  useEffect(() => {
+    const handleDeepLink = (url: string) => {
+      const parsedUrl = Linking.parse(url);
+      
+      // Check if this is an email verification link
+      if (parsedUrl.path?.includes('verify') || parsedUrl.queryParams?.type === 'email') {
+        // Extract verification parameters
+        const token = parsedUrl.queryParams?.token as string;
+        const type = parsedUrl.queryParams?.type as string;
+        const email = parsedUrl.queryParams?.email as string;
+        
+        // Navigate to verification screen with parameters
+        import('expo-router').then(({ router }) => {
+          router.push({
+            pathname: '/auth/verify-email',
+            params: { token, type, email }
+          });
+        });
+      }
+    };
+
+    // Handle initial URL when app is opened from deep link
+    const getInitialURL = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl) {
+        handleDeepLink(initialUrl);
+      }
+    };
+
+    // Handle deep links when app is already open
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    getInitialURL();
+
+    return () => subscription?.remove();
+  }, []);
 
   if (!loaded) {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <RootLayoutNav />
+      </SafeAreaProvider>
+    </QueryClientProvider>
+  );
 }
 
 function RootLayoutNav() {
