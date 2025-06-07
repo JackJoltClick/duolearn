@@ -33,12 +33,12 @@ export default function TabLayout() {
     <AuthGuard requireAuth={true}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#007AFF',
-          tabBarInactiveTintColor: '#8E8E93',
+          tabBarActiveTintColor: Colors.primary,
+          tabBarInactiveTintColor: Colors.textTertiary,
           tabBarStyle: {
-            backgroundColor: '#FFFFFF',
+            backgroundColor: Colors.background,
             borderTopWidth: 1,
-            borderTopColor: '#E5E5EA',
+            borderTopColor: Colors.border,
             paddingBottom: Platform.OS === 'ios' ? 25 : 10,
             paddingTop: 10,
             height: Platform.OS === 'ios' ? 85 : 70,
@@ -48,24 +48,15 @@ export default function TabLayout() {
             fontWeight: '600',
             marginTop: 4,
           },
-          headerShown: useClientOnlyValue(false, true),
-          headerStyle: {
-            backgroundColor: '#FFFFFF',
-            borderBottomWidth: 1,
-            borderBottomColor: '#E5E5EA',
-          },
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            fontSize: 18,
-          },
+          headerShown: false, // Hide headers for cleaner look
         }}>
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: 'Today',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon 
-                name={focused ? 'home' : 'home-outline'} 
+                name={focused ? 'today' : 'today-outline'} 
                 color={color} 
               />
             ),
@@ -74,10 +65,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="explore"
           options={{
-            title: 'Explore',
+            title: 'Practice',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon 
-                name={focused ? 'compass' : 'compass-outline'} 
+                name={focused ? 'school' : 'school-outline'} 
                 color={color} 
               />
             ),
@@ -86,10 +77,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="activity"
           options={{
-            title: 'Activity',
+            title: 'Progress',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon 
-                name={focused ? 'pulse' : 'pulse-outline'} 
+                name={focused ? 'stats-chart' : 'stats-chart-outline'} 
                 color={color} 
               />
             ),

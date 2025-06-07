@@ -1,38 +1,37 @@
 {
   "expo": {
-    "name": "JOLTCLICK",
-    "slug": "joltclick",
+    "name": "DuoLearn",
+    "slug": "duolearn",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "joltclick",
-    "userInterfaceStyle": "automatic",
+    "scheme": "duolearn",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#007AFF"
+      "backgroundColor": "#FFFFFF"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.joltclick",
+      "bundleIdentifier": "com.duolearn.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to take profile pictures.",
-        "NSPhotoLibraryUsageDescription": "This app uses the photo library to select profile pictures."
+        "NSMicrophoneUsageDescription": "This app uses the microphone for speaking practice exercises.",
+        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition to check pronunciation accuracy."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#007AFF"
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.yourcompany.joltclick",
+      "package": "com.duolearn.app",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -43,9 +42,9 @@
     "plugins": [
       "expo-router",
       [
-        "expo-image-picker",
+        "expo-av",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your profile."
+          "microphonePermission": "Allow DuoLearn to access your microphone for speaking exercises."
         }
       ]
     ],

@@ -125,3 +125,103 @@ VALUES
     ('00000000-0000-0000-0000-000000000000', 'profile_completed', '{"fields": ["first_name", "last_name", "bio"]}', 10),
     ('00000000-0000-0000-0000-000000000000', 'feature_used', '{"feature": "dashboard"}', 5)
 ON CONFLICT DO NOTHING;
+
+-- DuoLearn Database Schema
+-- Minimalist but powerful schema for language learning
+
+-- User statistics table
+CREATE TABLE user_stats (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  current_streak INTEGER DEFAULT 0,
+  best_streak INTEGER DEFAULT 0,
+  last_practice_date DATE,
+  daily_goal_minutes INTEGER DEFAULT 10,
+  total_days_practiced INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  UNIQUE(user_id)
+);
+
+-- Questions table - minimal structure
+CREATE TABLE questions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  type TEXT NOT NULL CHECK (type IN ('speaking', 'vocabulary', 'listening', 'grammar')),
+  question TEXT NOT NULL,
+  options JSONB, -- For multiple choice questions
+  correct_answer TEXT NOT NULL,
+  audio_url TEXT, -- For listening exercises
+  difficulty_level INTEGER DEFAULT 1 CHECK (difficulty_level >= 1 AND difficulty_level <= 5),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- User responses for spaced repetition algorithm
+CREATE TABLE user_responses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  question_id UUID REFERENCES questions(id) ON DELETE CASCADE,
+  is_correct BOOLEAN NOT NULL,
+  response_time_ms INTEGER,
+  practice_type TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Daily progress tracking
+CREATE TABLE daily_progress (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  practice_date DATE NOT NULL,
+  speaking_accuracy REAL DEFAULT 0,
+  vocabulary_accuracy REAL DEFAULT 0,
+  listening_accuracy REAL DEFAULT 0,
+  grammar_accuracy REAL DEFAULT 0,
+  total_minutes INTEGER DEFAULT 0,
+  is_perfect_day BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  UNIQUE(user_id, practice_date)
+);
+
+-- RLS (Row Level Security) policies
+ALTER TABLE user_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_progress ENABLE ROW LEVEL SECURITY;
+
+-- Users can only access their own data
+CREATE POLICY "Users can view own stats" ON user_stats FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own stats" ON user_stats FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own stats" ON user_stats FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own responses" ON user_responses FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own responses" ON user_responses FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own progress" ON daily_progress FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own progress" ON daily_progress FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own progress" ON daily_progress FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Questions are publicly readable
+CREATE POLICY "Questions are publicly readable" ON questions FOR SELECT USING (true);
+
+-- Functions for updating timestamps
+CREATE OR REPLACE FUNCTION handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = TIMEZONE('utc'::text, NOW());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers for updating timestamps
+CREATE TRIGGER set_timestamp_user_stats BEFORE UPDATE ON user_stats FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+
+-- Sample questions for testing
+INSERT INTO questions (type, question, options, correct_answer, difficulty_level) VALUES
+('vocabulary', 'The weather is very _____ today.', '["cold", "happy", "fast", "green"]', 'cold', 1),
+('vocabulary', 'I like to _____ books in my free time.', '["eat", "read", "swim", "fly"]', 'read', 1),
+('vocabulary', 'She _____ to school every morning.', '["walks", "sleeps", "cooks", "dances"]', 'walks', 1),
+('vocabulary', 'The cat is _____ on the sofa.', '["flying", "swimming", "sitting", "running"]', 'sitting', 1),
+('vocabulary', 'I need to _____ my homework.', '["cook", "finish", "sing", "dance"]', 'finish', 1),
+('vocabulary', 'The _____ is shining brightly today.', '["moon", "sun", "star", "cloud"]', 'sun', 1),
+('vocabulary', 'Can you _____ me the time?', '["tell", "eat", "sleep", "run"]', 'tell', 1),
+('vocabulary', 'I _____ my keys yesterday.', '["found", "cooked", "sang", "flew"]', 'found', 1),
+('vocabulary', 'The children are _____ in the park.', '["sleeping", "cooking", "playing", "studying"]', 'playing', 1),
+('vocabulary', 'She _____ a beautiful song.', '["cooked", "sang", "ran", "slept"]', 'sang', 1);
